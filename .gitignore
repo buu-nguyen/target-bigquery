@@ -137,7 +137,8 @@ dmypy.json
 
 # Test plugins
 plugins/
-output/
+*output/
+*inputs/
 
 # IDE
 .idea/
