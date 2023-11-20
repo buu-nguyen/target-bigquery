@@ -117,12 +117,46 @@ def generate_template(message: Type[Message]):
         descriptor_pb2.DescriptorProto(),
         types.AppendRowsRequest.ProtoData(),
     )
-    message.DESCRIPTOR.CopyToProto(proto_descriptor)
+    ## See https://github.com/z3z1ma/target-bigquery/issues/71
+    proto_descriptor = CopyFromNestedDescriptor(message.DESCRIPTOR)
     proto_schema.proto_descriptor = proto_descriptor
     proto_data.writer_schema = proto_schema
     template.proto_rows = proto_data
     return template
 
+## See https://github.com/z3z1ma/target-bigquery/issues/71
+def CopyFromNestedDescriptor(descriptor):
+
+    from google.protobuf import descriptor_pb2
+
+    descriptor_proto = descriptor_pb2.DescriptorProto()
+    descriptor.CopyToProto(descriptor_proto)
+
+    def _transform_proto_descriptor(descriptor, descriptor_proto, local_path, nested = set()):
+        
+        ix = 0
+        for field in descriptor.fields: 
+            if field.message_type:
+                
+                nested_proto = descriptor_pb2.DescriptorProto()
+                field.message_type.CopyToProto(nested_proto)
+                nested_type_full_name = local_path[-1] + '.' + nested_proto.name
+                descriptor_proto.field[ix].type_name = nested_type_full_name
+
+                local_path.append(nested_type_full_name)
+                _transform_proto_descriptor(field.message_type, nested_proto, local_path, nested)
+                local_path.pop()
+
+                if not nested_type_full_name in nested:
+
+                   descriptor_proto.nested_type.add().MergeFrom(nested_proto)
+                   nested.add(nested_type_full_name)    
+
+            ix += 1
+
+    _transform_proto_descriptor(descriptor, descriptor_proto, [descriptor_proto.name])
+
+    return descriptor_proto
 
 class Job:
     """Encapsulate information required to execute a job
@@ -304,7 +338,7 @@ class BigQueryStorageWriteSink(BaseBigQuerySink):
 
     @property
     def proto_schema(self) -> Type[Message]:
-        if not hasattr(self, "_proto_schema"):
+        if not hasattr(self, "_proto_schemaZZZZ"):  ## See https://github.com/z3z1ma/target-bigquery/issues/71
             self._proto_schema = proto_schema_factory_v2(
                 self.table.get_resolved_schema(self.apply_transforms)
             )
@@ -320,7 +354,9 @@ class BigQueryStorageWriteSink(BaseBigQuerySink):
 
     def process_record(self, record: Dict[str, Any], context: Dict[str, Any]) -> None:
         self.proto_rows.serialized_rows.append(
-            json_format.ParseDict(record, self.proto_schema()).SerializeToString()
+            ## Pass ignore_unknown_fields to fix an issue with Tap-Xero schema
+            ## To consider addressing in the upstream tap
+            json_format.ParseDict(record, self.proto_schema(), ignore_unknown_fields=True).SerializeToString()
         )
 
     def process_batch(self, context: Dict[str, Any]) -> None:
