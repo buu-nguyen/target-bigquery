@@ -33,7 +33,7 @@ from typing import (
     cast,
 )
 
-import orjson
+import orjson, decimal
 from google.cloud.bigquery_storage_v1 import BigQueryWriteClient, types, writer
 from google.protobuf import json_format
 from proto import Message
@@ -56,6 +56,10 @@ MAX_IN_FLIGHT = 15
 Dispatcher = Callable[[types.AppendRowsRequest], writer.AppendRowsFuture]
 StreamComponents = Tuple[str, writer.AppendRowsStream, Dispatcher]
 
+def default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError
 
 def get_application_stream(client: BigQueryWriteClient, job: "Job") -> StreamComponents:
     """Get an application created stream for the parent. This stream must be finalized and committed."""
@@ -311,7 +315,7 @@ class BigQueryStorageWriteSink(BaseBigQuerySink):
 
     def preprocess_record(self, record: dict, context: dict) -> dict:
         record = super().preprocess_record(record, context)
-        record["data"] = orjson.dumps(record["data"]).decode("utf-8")
+        record["data"] = orjson.dumps(record["data"], default=default).decode("utf-8")
         return record
 
     def process_record(self, record: Dict[str, Any], context: Dict[str, Any]) -> None:
