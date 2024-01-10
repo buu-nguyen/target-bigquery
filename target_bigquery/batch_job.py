@@ -19,7 +19,7 @@ from multiprocessing.dummy import Process as _Thread
 from queue import Empty
 from typing import Any, Dict, NamedTuple, Optional, Type, Union
 
-import orjson
+import orjson, decimal
 from google.cloud import bigquery
 
 from target_bigquery.core import (
@@ -30,6 +30,11 @@ from target_bigquery.core import (
     ParType,
     bigquery_client_factory,
 )
+
+def default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError
 
 
 class Job(NamedTuple):
@@ -109,7 +114,7 @@ class BigQueryBatchJobSink(BaseBigQuerySink):
         return Worker
 
     def process_record(self, record: Dict[str, Any], context: Dict[str, Any]) -> None:
-        self.buffer.write(orjson.dumps(record, option=orjson.OPT_APPEND_NEWLINE))
+        self.buffer.write(orjson.dumps(record, option=orjson.OPT_APPEND_NEWLINE, default=default))
 
     def process_batch(self, context: Dict[str, Any]) -> None:
         self.buffer.close()
