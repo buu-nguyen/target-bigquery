@@ -18,13 +18,17 @@ from multiprocessing.dummy import Process as _Thread
 from queue import Empty
 from typing import Any, Dict, List, NamedTuple, Optional, Type, Union
 
-import orjson
+import orjson, decimal
 from google.api_core.exceptions import GatewayTimeout, NotFound
 from google.cloud import _http, bigquery
 from tenacity import retry, retry_if_exception_type, stop_after_delay, wait_fixed
 
 from target_bigquery.core import BaseBigQuerySink, BaseWorker, Denormalized, bigquery_client_factory
 
+def default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError
 
 class Job(NamedTuple):
     """Job to be processed by a worker."""
@@ -98,7 +102,7 @@ class BigQueryStreamingInsertSink(BaseBigQuerySink):
 
     def preprocess_record(self, record: dict, context: dict) -> dict:
         record = super().preprocess_record(record, context)
-        record["data"] = orjson.dumps(record["data"]).decode("utf-8")
+        record["data"] = orjson.dumps(record["data"], default=default).decode("utf-8")
         return record
 
     @property
