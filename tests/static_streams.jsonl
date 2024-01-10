@@ -1,0 +1,38 @@
+{"type": "SCHEMA", "stream": "glaccounttype", "schema": {"type": "object", "properties": {"name": {"type": "string"}, "number": {"type": "integer"}}, "key_properties": ["number"]}, "key_properties": ["number"]}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Cash", "number": 10}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Bank", "number": 12}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Credit card", "number": 14}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Payment services", "number": 16}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Accounts receivable", "number": 20}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Prepayment accounts receivable", "number": 21}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Accounts payable", "number": 22}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "VAT", "number": 24}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Employees payable", "number": 25}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Prepaid expenses", "number": 26}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Accrued expenses", "number": 27}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Income taxes payable", "number": 29}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Fixed assets", "number": 30}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Other assets", "number": 32}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Accumulated depreciation", "number": 35}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Inventory", "number": 40}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Capital stock", "number": 50}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Retained earnings", "number": 52}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Long term debt", "number": 55}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Current portion of debt", "number": 60}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "General", "number": 90}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Tax payable", "number": 100}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Revenue", "number": 110}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Cost of goods", "number": 111}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Other costs", "number": 120}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Sales, general administrative expenses", "number": 121}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Depreciation costs", "number": 122}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Research and development", "number": 123}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Employee costs", "number": 125}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Employment costs", "number": 126}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Exceptional costs", "number": 130}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Exceptional income", "number": 140}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Income taxes", "number": 150}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Interest income", "number": 160}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Year end reflection", "number": 300}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Indirect year end costing", "number": 301}}
+{"type": "RECORD", "stream": "glaccounttype", "record": {"name": "Direct year end costing", "number": 302}}
