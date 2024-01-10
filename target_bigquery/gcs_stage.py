@@ -22,7 +22,7 @@ from multiprocessing.dummy import Process as _Thread
 from queue import Empty
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Type, Union
 
-import orjson
+import orjson, decimal
 from google.api_core.exceptions import Conflict
 from google.cloud import bigquery, storage
 
@@ -37,6 +37,11 @@ from target_bigquery.core import (
     bigquery_client_factory,
     gcs_client_factory,
 )
+
+def default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError
 
 if TYPE_CHECKING:
     from target_bigquery.target import TargetBigQuery
@@ -155,7 +160,7 @@ class BigQueryGcsStagingSink(BaseBigQuerySink):
         }
 
     def process_record(self, record: Dict[str, Any], context: Dict[str, Any]) -> None:
-        self.buffer.write(orjson.dumps(record, option=orjson.OPT_APPEND_NEWLINE))
+        self.buffer.write(orjson.dumps(record, option=orjson.OPT_APPEND_NEWLINE, default=default))
 
     def process_batch(self, context: Dict[str, Any]) -> None:
         self.buffer.close()
