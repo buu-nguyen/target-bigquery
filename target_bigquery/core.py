@@ -434,6 +434,7 @@ class BaseBigQuerySink(BatchSink):
 
     def preprocess_record(self, record: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """Preprocess a record before writing it to the sink."""
+        record = {k: v for k, v in record.items() if v is not None} # Remove null values from record before writing to BigQuery
         metadata = {
             k: record.pop(k, None)
             for k in (
@@ -584,6 +585,7 @@ class Denormalized:
         self: BaseBigQuerySink, record: Dict[str, Any], context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Preprocess a record before writing it to the sink."""
+        record = {k: v for k, v in record.items() if v is not None} # Remove null values from record before writing to BigQuery
         return self.table.schema_translator.translate_record(record)
 
 
