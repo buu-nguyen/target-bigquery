@@ -410,6 +410,11 @@ class BaseBigQuerySink(BatchSink):
     @property
     def table_name(self) -> str:
         """Returns the table name."""
+        if table_name_maps := self.config.get("table_name_maps"):
+            for stream_name_pattern, value in table_name_maps.items():
+                if fnmatch(self.stream_name, stream_name_pattern):
+                    return value
+
         return self.stream_name.lower().replace("-", "_").replace(".", "_")
 
     @property
