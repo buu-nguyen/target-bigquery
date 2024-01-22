@@ -774,10 +774,10 @@ class SchemaTranslator:
 
                 if "array" in property_type:
                     if "items" not in schema_property or "type" not in schema_property["items"]:
-                        return SchemaField(name, "JSON", "REPEATED")
+                        return SchemaField(name, "JSON", "NULLABLE")
                     items_schema: dict = schema_property["items"]
                     if "patternProperties" in items_schema:
-                        return SchemaField(name, "JSON", "REPEATED")
+                        return SchemaField(name, "JSON", "NULLABLE")
                     items_type = bigquery_type(
                         items_schema["type"], items_schema.get("format", None)
                     )
