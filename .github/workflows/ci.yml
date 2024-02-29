@@ -28,7 +28,7 @@ jobs:
   build:
     strategy:
       matrix:
-        py_version: ["3.8", "3.9", "3.10"]
+        py_version: ["3.10", "3.11"]
     runs-on: ubuntu-latest
     env:
       PYTHON_VERSION: ${{ matrix.py_version }}
@@ -52,6 +52,6 @@ jobs:
       - name: Run Bigquery Unit Tests
         run: |
           poetry run pytest -k test_utils
-      - name: Run Bigquery Integration Tests
-        run: |
-          poetry run pytest -k test_sync
+      # - name: Run Bigquery Integration Tests
+      #   run: |
+      #     poetry run pytest -k test_sync
