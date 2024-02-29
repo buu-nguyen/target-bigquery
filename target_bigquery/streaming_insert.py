@@ -103,7 +103,7 @@ class BigQueryStreamingInsertSink(BaseBigQuerySink):
 
     def preprocess_record(self, record: dict, context: dict) -> dict:
         record = super().preprocess_record(record, context)
-        record["data"] = orjson.dumps(record["data"]).decode("utf-8")
+        record["data"] = orjson.dumps(record["data"], default=str).decode("utf-8")
         return record
 
     @property

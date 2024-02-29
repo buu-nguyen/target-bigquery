@@ -163,7 +163,7 @@ class BigQueryGcsStagingSink(BaseBigQuerySink):
         }
 
     def process_record(self, record: Dict[str, Any], context: Dict[str, Any]) -> None:
-        self.buffer.write(orjson.dumps(record, option=orjson.OPT_APPEND_NEWLINE))
+        self.buffer.write(orjson.dumps(record, option=orjson.OPT_APPEND_NEWLINE, default=str))
 
     def process_batch(self, context: Dict[str, Any]) -> None:
         self.buffer.close()
