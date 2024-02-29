@@ -70,16 +70,6 @@ PARTITION_STRATEGY = {
 }
 
 
-class SchemaResolverVersion(Enum):
-    """The schema resolver version to use."""
-
-    V1 = 1
-    V2 = 2
-
-    def __str__(self) -> str:
-        return str(self.value)
-
-
 @dataclass
 class BigQueryTable:
     name: str
@@ -93,8 +83,6 @@ class BigQueryTable:
     ingestion_strategy: IngestionStrategy
     """The ingestion strategy for this table."""
     transforms: Dict[str, bool] = field(default_factory=dict)
-    """A dict of transformation rules to apply to the table schema."""
-    schema_resolver_version: SchemaResolverVersion = SchemaResolverVersion.V1
 
     @property
     def schema_translator(self) -> "SchemaTranslator":
@@ -103,7 +91,6 @@ class BigQueryTable:
             self._schema_translator = SchemaTranslator(
                 schema=self.jsonschema,
                 transforms=self.transforms,
-                resolver_version=self.schema_resolver_version,
             )
         return self._schema_translator
 
@@ -298,9 +285,6 @@ class BaseBigQuerySink(BatchSink):
             "jsonschema": self.schema,
             "transforms": self.config.get("column_name_transforms", {}),
             "ingestion_strategy": self.ingestion_strategy,
-            "schema_resolver_version": SchemaResolverVersion(
-                self.config.get("schema_resolver_version", 1)
-            ),
         }
         self.table = BigQueryTable(name=self.table_name, **opts)
         self.create_target(key_properties=key_properties)
@@ -665,11 +649,9 @@ class SchemaTranslator:
         self,
         schema: Dict[str, Any],
         transforms: Dict[str, bool],
-        resolver_version: SchemaResolverVersion = SchemaResolverVersion.V1,
     ) -> None:
         self.schema = schema
         self.transforms = transforms
-        self.resolver_version = resolver_version
         # Used by fixed schema strategy where we defer transformation
         # to the view statement
         self._translated_schema = None
@@ -737,13 +719,11 @@ class SchemaTranslator:
     ) -> SchemaField:
         """Translate a JSON schema property into a BigQuery column.
 
-        The v1 resolver is very similar to how existing target-bigquery implementations worked.
-        The v2 resolver uses JSON in all cases the schema property is unresolvable making it _much_
+        This resolver uses JSON in all cases the schema property is unresolvable making it _much_
         more flexible though the denormalization can only be said to be partial if a type is not
-        resolved. Most of the time this is fine but for the sake of consistency, we default to v1.
+        resolved.
         """
-        if self.resolver_version == SchemaResolverVersion.V1:
-            # This is the original resolver, which is used by the denormalized strategy
+        try:
             if "anyOf" in schema_property and len(schema_property["anyOf"]) > 0:
                 # I have only seen this used in the wild with tap-salesforce, which
                 # is incidentally an important one so lets handle the anyOf case
@@ -751,65 +731,38 @@ class SchemaTranslator:
                 property_type = schema_property["anyOf"][0].get("type", "string")
                 property_format = schema_property["anyOf"][0].get("format", None)
             else:
-                property_type = schema_property.get("type", "string")
+                property_type = schema_property["type"]
                 property_format = schema_property.get("format", None)
 
             if "array" in property_type:
-                if "items" not in schema_property:
-                    return SchemaField(name, "JSON", "REPEATED")
+                if "items" not in schema_property or "type" not in schema_property["items"]:
+                    return SchemaField(name, "JSON", "NULLABLE")
                 items_schema: dict = schema_property["items"]
-                items_type = bigquery_type(items_schema["type"], items_schema.get("format", None))
+                if "patternProperties" in items_schema:
+                    return SchemaField(name, "JSON", "NULLABLE")
+                items_type = bigquery_type(
+                    items_schema["type"], items_schema.get("format", None)
+                )
                 if items_type == "record":
-                    return self._translate_record_to_bigquery_schema(name, items_schema, "REPEATED")
+                    return self._translate_record_to_bigquery_schema(
+                        name, items_schema, "REPEATED"
+                    )
                 return SchemaField(name, items_type, "REPEATED")
             elif "object" in property_type:
+                if (
+                    "properties" not in schema_property
+                    or len(schema_property["properties"]) == 0
+                    or "patternProperties" in schema_property
+                ):
+                    return SchemaField(name, "JSON", "NULLABLE")
                 return self._translate_record_to_bigquery_schema(name, schema_property)
             else:
+                if "patternProperties" in schema_property:
+                    return SchemaField(name, "JSON", "NULLABLE")
                 result_type = bigquery_type(property_type, property_format)
                 return SchemaField(name, result_type, "NULLABLE")
-        elif self.resolver_version == SchemaResolverVersion.V2:
-            # This is the new resolver, which is far more lenient and falls back to JSON
-            # if it doesn't know how to translate a property.
-            try:
-                if "anyOf" in schema_property and len(schema_property["anyOf"]) > 0:
-                    # I have only seen this used in the wild with tap-salesforce, which
-                    # is incidentally an important one so lets handle the anyOf case
-                    # by giving the 0th index priority.
-                    property_type = schema_property["anyOf"][0].get("type", "string")
-                    property_format = schema_property["anyOf"][0].get("format", None)
-                else:
-                    property_type = schema_property["type"]
-                    property_format = schema_property.get("format", None)
-
-                if "array" in property_type:
-                    if "items" not in schema_property or "type" not in schema_property["items"]:
-                        return SchemaField(name, "JSON", "NULLABLE")
-                    items_schema: dict = schema_property["items"]
-                    if "patternProperties" in items_schema:
-                        return SchemaField(name, "JSON", "NULLABLE")
-                    items_type = bigquery_type(
-                        items_schema["type"], items_schema.get("format", None)
-                    )
-                    if items_type == "record":
-                        return self._translate_record_to_bigquery_schema(
-                            name, items_schema, "REPEATED"
-                        )
-                    return SchemaField(name, items_type, "REPEATED")
-                elif "object" in property_type:
-                    if (
-                        "properties" not in schema_property
-                        or len(schema_property["properties"]) == 0
-                        or "patternProperties" in schema_property
-                    ):
-                        return SchemaField(name, "JSON", "NULLABLE")
-                    return self._translate_record_to_bigquery_schema(name, schema_property)
-                else:
-                    if "patternProperties" in schema_property:
-                        return SchemaField(name, "JSON", "NULLABLE")
-                    result_type = bigquery_type(property_type, property_format)
-                    return SchemaField(name, result_type, "NULLABLE")
-            except Exception:
-                return SchemaField(name, "JSON", "NULLABLE")
+        except Exception:
+            return SchemaField(name, "JSON", "NULLABLE")
 
     def _translate_record_to_bigquery_schema(
         self, name: str, schema_property: dict, mode: str = "NULLABLE"
